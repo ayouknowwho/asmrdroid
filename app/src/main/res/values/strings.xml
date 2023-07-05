@@ -3,6 +3,7 @@
     <string name="tab1_label">Home</string>
     <string name="tab2_label">Import</string>
     <string name="tab3_label">Generate</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello home fragment</string>
+    <string name="home_fragment_text1">Welcome to ASMRdroid, an android app for remixing input asmr audio into new randomized audio.</string>
+    <string name="import_fragment_text1">This tab will be used for importing audio to the database.</string>
+    <string name="generate_fragment_text1">This tab will be used for generating audio from the database.</string>
 </resources>
