@@ -1,4 +1,4 @@
-package com.ayouknowwho.asmrdroid;
+package com.ayouknowwho.asmrdroid.model;
 
 public final class SampleDbContract {
     // To prevent someone from accidentally instantiating the contract class,

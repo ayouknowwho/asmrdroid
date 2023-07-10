@@ -2,18 +2,20 @@ package com.ayouknowwho.asmrdroid;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentContainerView;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.os.Bundle;
 
+import com.ayouknowwho.asmrdroid.viewModel.SampleRepositoryViewModel;
 import com.google.android.material.tabs.TabLayout;
 
 public class MainActivity extends AppCompatActivity {
-    SampleDbHelper sampleDbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        sampleDbHelper = new SampleDbHelper(this);
+        // Set up sample database view model
+        SampleRepositoryViewModel sampleDbViewModel = new ViewModelProvider(this).get(SampleRepositoryViewModel.class);
 
         // UI Creation
         setContentView(R.layout.activity_main);
@@ -61,12 +63,6 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
-    }
-
-    @Override
-    protected void onDestroy() {
-        sampleDbHelper.close();
-        super.onDestroy();
     }
 
 }
