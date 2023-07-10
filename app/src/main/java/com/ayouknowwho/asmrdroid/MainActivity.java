@@ -8,10 +8,14 @@ import android.os.Bundle;
 import com.google.android.material.tabs.TabLayout;
 
 public class MainActivity extends AppCompatActivity {
+    SampleDbHelper sampleDbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        sampleDbHelper = new SampleDbHelper(this);
+
+        // UI Creation
         setContentView(R.layout.activity_main);
         TabLayout tabLayout = findViewById(R.id.tabLayout);
         FragmentContainerView fragmentContainerView = (FragmentContainerView) findViewById(R.id.fragmentContainerView);
@@ -58,4 +62,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
+
+    @Override
+    protected void onDestroy() {
+        sampleDbHelper.close();
+        super.onDestroy();
+    }
+
 }
