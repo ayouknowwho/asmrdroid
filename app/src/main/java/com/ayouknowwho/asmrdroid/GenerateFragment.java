@@ -24,6 +24,7 @@ public class GenerateFragment extends Fragment {
     private String mParam1;
     private String mParam2;
 
+
     public GenerateFragment() {
         // Required empty public constructor
     }

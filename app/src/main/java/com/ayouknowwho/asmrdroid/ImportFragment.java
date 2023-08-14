@@ -1,12 +1,22 @@
 package com.ayouknowwho.asmrdroid;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
+
+import com.ayouknowwho.asmrdroid.viewModel.MainViewModel;
+
+import java.net.URI;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -59,6 +69,36 @@ public class ImportFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_import, container, false);
+        View view = inflater.inflate(R.layout.fragment_import, container, false);
+
+        // Get the ViewModel
+        MainViewModel mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+
+        final TextView file_pick_text_view = (TextView) view.findViewById(R.id.file_pick_text_view);
+        // Set file pick text
+        final Uri file_uri = mainViewModel.getImport_file_uri();
+        final String file_uri_string = file_uri.toString();
+        if (!file_uri_string.equals("default.default.default")) {
+
+            file_pick_text_view.setText(file_uri_string);
+        }
+
+        // Create a Button Listener
+        final Button file_pick_button = (Button) view.findViewById(R.id.file_pick_button);
+        file_pick_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // StartFilePick startFilePick = new MainActivity();
+
+                ((StartFilePicker) requireActivity()).startFilePick();
+
+                // mainViewModel.setImport_file_uri(Uri.parse("test.test.test"));
+                final Uri file_uri2 = mainViewModel.getImport_file_uri();
+                final String file_uri_string2 = file_uri2.toString();
+                file_pick_text_view.setText(file_uri_string2);
+            }
+        });
+
+        return view;
     }
 }

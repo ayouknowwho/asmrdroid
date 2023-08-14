@@ -4,6 +4,18 @@
     <string name="tab2_label">Import</string>
     <string name="tab3_label">Generate</string>
     <string name="home_fragment_text1">Welcome to ASMRdroid, an android app for remixing input asmr audio into new randomized audio.</string>
-    <string name="import_fragment_text1">This tab will be used for importing audio to the database.</string>
-    <string name="generate_fragment_text1">This tab will be used for generating audio from the database.</string>
+    <string name="import_fragment_text1">This tab is used for importing audio files to the app folder.</string>
+    <string name="generate_fragment_text1">This tab is used for generating audio from the imported files.</string>
+    <string name="import_file_uri">Please select a file to import</string>
+    <string name="pick_file_button_text">Pick File</string>
+    <string name="import_file_button_text">Import File</string>
+    <string name="import_tag_selector_text">Please select tags for the audio to import.</string>
+    <string name="import_file_tag_list_description">Tag list</string>
+    <string name="new_tag_button_text">Add new tag</string>
+    <string name="new_tag_text_hint">Name of new tag</string>
+    <string name="default_tag_label">default</string>
+    <string name="generate_tag_selector_text">Please select tags for the audio to generate</string>
+    <string name="generate_minutes_label">minutes to generate</string>
+    <string name="generate_button_label">Generate audio</string>
+    <string name="generate_default_minutes">0</string>
 </resources>

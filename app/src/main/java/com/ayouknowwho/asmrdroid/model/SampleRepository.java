@@ -1,16 +1,19 @@
 package com.ayouknowwho.asmrdroid.model;
 
+import android.content.Context;
+
 public class SampleRepository {
     private SampleDbHelper sampleDbHelper;
     private String opened;
     private String num_samples;
     private String corrupted;
 
-    public SampleRepository() {
+    public SampleRepository(Context context) {
         // TODO: initialise the database and set sampleDb
         opened = "Repository not opened";
         num_samples = "Samples not counted";
         corrupted = "Corruption not found";
+        sampleDbHelper = new SampleDbHelper(context);
     }
 
     // Setters

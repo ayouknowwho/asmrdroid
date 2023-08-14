@@ -9,6 +9,8 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="@string/home_fragment_text1" />
+        android:paddingTop="32dp"
+        android:text="@string/home_fragment_text1"
+        android:textAlignment="center" />
 
 </FrameLayout>
