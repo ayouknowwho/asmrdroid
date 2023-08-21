@@ -1,7 +1,5 @@
 package com.ayouknowwho.asmrdroid;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 
@@ -15,8 +13,6 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.ayouknowwho.asmrdroid.viewModel.MainViewModel;
-
-import java.net.URI;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -79,23 +75,27 @@ public class ImportFragment extends Fragment {
         final Uri file_uri = mainViewModel.getImport_file_uri();
         final String file_uri_string = file_uri.toString();
         if (!file_uri_string.equals("default.default.default")) {
-
             file_pick_text_view.setText(file_uri_string);
         }
 
-        // Create a Button Listener
+        // Create a Button Listener for the File Picker
         final Button file_pick_button = (Button) view.findViewById(R.id.file_pick_button);
         file_pick_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // StartFilePick startFilePick = new MainActivity();
-
-                ((StartFilePicker) requireActivity()).startFilePick();
-
-                // mainViewModel.setImport_file_uri(Uri.parse("test.test.test"));
+                ((FilePicker) requireActivity()).pickFile();
                 final Uri file_uri2 = mainViewModel.getImport_file_uri();
                 final String file_uri_string2 = file_uri2.toString();
                 file_pick_text_view.setText(file_uri_string2);
+            }
+        });
+
+        // Create a Button Listener for the Import File Button
+        final Button import_file_button = (Button) view.findViewById(R.id.import_file_button);
+        import_file_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ((FileImportStarter) requireActivity()).importFile();
             }
         });
 
