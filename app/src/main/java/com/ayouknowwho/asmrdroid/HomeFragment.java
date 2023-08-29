@@ -3,10 +3,18 @@ package com.ayouknowwho.asmrdroid;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.ayouknowwho.asmrdroid.model.AudioRepository;
+import com.ayouknowwho.asmrdroid.viewModel.AudioRepositoryViewModel;
+import com.ayouknowwho.asmrdroid.viewModel.ImportViewModel;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -59,6 +67,30 @@ public class HomeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_home, container, false);
+        View view = inflater.inflate(R.layout.fragment_home, container, false);
+
+        // Get the ViewModel
+        AudioRepositoryViewModel audioRepositoryViewModel = new ViewModelProvider(requireActivity()).get(AudioRepositoryViewModel.class);
+
+        // Set the TextViews
+        final TextView opened_text_view = (TextView) view.findViewById(R.id.opened_text_view);
+        opened_text_view.setText(audioRepositoryViewModel.getOpened());
+        final TextView corrupted_text_view = (TextView) view.findViewById(R.id.corrupted_text_view);
+        corrupted_text_view.setText(audioRepositoryViewModel.getCorrupted());
+        final TextView audio_count_text_view = (TextView) view.findViewById(R.id.audio_count_text_view);
+        audio_count_text_view.setText(audioRepositoryViewModel.getNum_files());
+        final TextView sample_count_text_view = (TextView) view.findViewById(R.id.sample_count_text_view);
+        sample_count_text_view.setText(audioRepositoryViewModel.getNum_samples());
+
+        final Button empty_db_button = (Button) view.findViewById(R.id.empty_db_button);
+        empty_db_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                audioRepositoryViewModel.emptyRepository();
+                Toast.makeText(requireContext(), "New database created.", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        return view;
     }
 }

@@ -12,7 +12,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.ayouknowwho.asmrdroid.viewModel.MainViewModel;
+import com.ayouknowwho.asmrdroid.viewModel.ImportViewModel;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -68,11 +68,11 @@ public class ImportFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_import, container, false);
 
         // Get the ViewModel
-        MainViewModel mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        ImportViewModel importViewModel = new ViewModelProvider(requireActivity()).get(ImportViewModel.class);
 
         final TextView file_pick_text_view = (TextView) view.findViewById(R.id.file_pick_text_view);
         // Set file pick text
-        final Uri file_uri = mainViewModel.getImport_file_uri();
+        final Uri file_uri = importViewModel.getImport_file_uri();
         final String file_uri_string = file_uri.toString();
         if (!file_uri_string.equals("default.default.default")) {
             file_pick_text_view.setText(file_uri_string);
@@ -84,7 +84,7 @@ public class ImportFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 ((FilePicker) requireActivity()).pickFile();
-                final Uri file_uri2 = mainViewModel.getImport_file_uri();
+                final Uri file_uri2 = importViewModel.getImport_file_uri();
                 final String file_uri_string2 = file_uri2.toString();
                 file_pick_text_view.setText(file_uri_string2);
             }

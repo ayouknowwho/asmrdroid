@@ -18,4 +18,9 @@
     <string name="generate_minutes_label">minutes to generate</string>
     <string name="generate_button_label">Generate audio</string>
     <string name="generate_default_minutes">0</string>
+    <string name="db_opened_default_text">Database not yet opened.</string>
+    <string name="db_corruption_default_text">Database corruption not yet checked.</string>
+    <string name="db_audio_count_default_text">Database audio files not yet counted.</string>
+    <string name="db_sample_count_default_text">Database samples not yet counted.</string>
+    <string name="empty_db_button_text">Delete the database and create a new one.</string>
 </resources>

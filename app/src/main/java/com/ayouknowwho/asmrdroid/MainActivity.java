@@ -1,7 +1,6 @@
 package com.ayouknowwho.asmrdroid;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.documentfile.provider.DocumentFile;
 import androidx.fragment.app.FragmentContainerView;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -11,16 +10,15 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Toast;
 
-import com.ayouknowwho.asmrdroid.viewModel.MainViewModel;
+import com.ayouknowwho.asmrdroid.viewModel.AudioRepositoryViewModel;
+import com.ayouknowwho.asmrdroid.viewModel.GenerateViewModel;
+import com.ayouknowwho.asmrdroid.viewModel.ImportViewModel;
 import com.google.android.material.tabs.TabLayout;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.Buffer;
 
 public class MainActivity extends AppCompatActivity implements FilePicker, FileImportStarter {
 
@@ -30,11 +28,10 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Set up view model
-        MainViewModel mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
-
-        // Set up sample database view model
-        /* SampleRepositoryViewModel sampleRepositoryViewModel = new ViewModelProvider.of(this, getContext()).get(SampleRepositoryViewModel.class); */
+        // Set up view models
+        ImportViewModel importViewModel = new ViewModelProvider(this).get(ImportViewModel.class);
+        AudioRepositoryViewModel audioRepositoryViewModel = new ViewModelProvider(this).get(AudioRepositoryViewModel.class);
+        GenerateViewModel generateViewModel = new ViewModelProvider(this).get(GenerateViewModel.class);
 
         // UI Creation
         setContentView(R.layout.activity_main);
@@ -95,8 +92,13 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
 
     public void importFile() {
         // TODO: Assumes a valid uri is passed except default.default.default
-        MainViewModel mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
-        final Uri file_uri = mainViewModel.getImport_file_uri();
+
+        // Import ViewModels
+        ImportViewModel importViewModel = new ViewModelProvider(this).get(ImportViewModel.class);
+        AudioRepositoryViewModel audioRepositoryViewModel = new ViewModelProvider(this).get(AudioRepositoryViewModel.class);
+
+        // Get the Uri
+        final Uri file_uri = importViewModel.getImport_file_uri();
         final String file_uri_string = file_uri.toString();
         if (file_uri_string == "default.default.default"){
             Toast.makeText(this.getApplicationContext(), "File not chosen.", Toast.LENGTH_SHORT).show();
@@ -106,12 +108,14 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             Toast.makeText(this.getApplicationContext(), String.join(" ", "Importing", file_uri_string), Toast.LENGTH_SHORT).show();
         }
 
+        // Start Streams
         InputStream is = null;
         BufferedInputStream bis = null;
         BufferedOutputStream bos = null;
         String outDestination = getUniqueFilename(file_uri);
         int originalSize;
 
+        // Initialize input stream
         try {
             is = getContentResolver().openInputStream(file_uri);
             bis = new BufferedInputStream(is);
@@ -124,6 +128,7 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             return;
         }
 
+        // Copy data from input to output
         try {
             // bos = new BufferedOutputStream(new FileOutputStream(outDestination));
             bos = new BufferedOutputStream(this.openFileOutput(outDestination, MODE_PRIVATE));
@@ -142,6 +147,9 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             Toast.makeText(this.getApplicationContext(), "IO Error.", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        // Insert file reference into database
+        audioRepositoryViewModel.storeAudioFile(outDestination);
 
     }
 
@@ -174,17 +182,17 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             if (resultData != null) {
                 uri = resultData.getData();
                 // Perform operations on the document using its URI.
-                MainViewModel mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+                ImportViewModel mainViewModel = new ViewModelProvider(this).get(ImportViewModel.class);
                 mainViewModel.setImport_file_uri(uri);
             }
             /* TODO: This changes the ViewModel but the TextView on the ImportFragment only picks it up onCreateView, not onActivityResult */
         }
         else if (requestCode == IMPORT_FILE_REQUEST_CODE
                 && resultCode == Activity.RESULT_OK) {
-            MainViewModel mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+            ImportViewModel importViewModel = new ViewModelProvider(this).get(ImportViewModel.class);
             Toast.makeText(this, "File Imported.", Toast.LENGTH_SHORT).show();
             // Reset the ViewModel Uri
-            mainViewModel.setImport_file_uri(Uri.parse("default.default.default"));
+            importViewModel.setImport_file_uri(Uri.parse("default.default.default"));
         }
     }
 }

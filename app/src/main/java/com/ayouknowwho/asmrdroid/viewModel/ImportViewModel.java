@@ -4,10 +4,10 @@ import android.net.Uri;
 
 import androidx.lifecycle.ViewModel;
 
-public class MainViewModel extends ViewModel {
+public class ImportViewModel extends ViewModel {
     private Uri import_file_uri;
 
-    public MainViewModel() {
+    public ImportViewModel() {
         this.import_file_uri = Uri.parse("default.default.default");
     }
 
