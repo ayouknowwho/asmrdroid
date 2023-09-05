@@ -7,33 +7,38 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class AudioDbHelper extends SQLiteOpenHelper {
     // If you change the database schema, you must increment the database version.
     // This is so onUpgrade is called.
-    public static final int DATABASE_VERSION = 3;
+    public static final int DATABASE_VERSION = 4;
     public static final String DATABASE_NAME = "audio.db";
 
-    private static final String SQL_CREATE_SAMPLE_TABLE =
-            "CREATE TABLE " + AudioDbContract.Samples.TABLE_NAME + " (" +
-                    AudioDbContract.Samples.COLUMN_NAME_ID + " INTEGER PRIMARY KEY," +
-                    AudioDbContract.Samples.COLUMN_NAME_TAG + " TEXT," +
-                    AudioDbContract.Samples.COLUMN_NAME_AUDIO_DATA + " BLOB)";
     private static final String SQL_CREATE_AUDIO_FILE_TABLE =
             "CREATE TABLE " + AudioDbContract.AudioFiles.TABLE_NAME + " (" +
                     AudioDbContract.AudioFiles.COLUMN_NAME_ID + " INTEGER PRIMARY KEY," +
                     AudioDbContract.AudioFiles.COLUMN_NAME_TAG + " TEXT," +
                     AudioDbContract.AudioFiles.COLUMN_NAME_FILENAME + " TEXT)";
 
-    private static final String SQL_DELETE_SAMPLE_TABLE =
-            "DROP TABLE IF EXISTS " + AudioDbContract.Samples.TABLE_NAME;
+    private static final String SQL_CREATE_SAMPLE_TABLE =
+            "CREATE TABLE " + AudioDbContract.Samples.TABLE_NAME + " (" +
+                    AudioDbContract.Samples.COLUMN_NAME_ID + " INTEGER PRIMARY KEY," +
+                    AudioDbContract.Samples.COLUMN_NAME_SOURCE_ID + " INTEGER NOT NULL," +
+                    AudioDbContract.Samples.COLUMN_NAME_TAG + " TEXT," +
+                    AudioDbContract.Samples.COLUMN_NAME_AUDIO_DATA + " BLOB," +
+                    "FOREIGN KEY(" + AudioDbContract.Samples.COLUMN_NAME_SOURCE_ID + ") " +
+                    "REFERENCES " + AudioDbContract.AudioFiles.TABLE_NAME + "(" +
+                    AudioDbContract.AudioFiles.COLUMN_NAME_ID + "))";
+
     private static final String SQL_DELETE_AUDIO_FILE_TABLE =
             "DROP TABLE IF EXISTS " + AudioDbContract.AudioFiles.TABLE_NAME;
 
+    private static final String SQL_DELETE_SAMPLE_TABLE =
+            "DROP TABLE IF EXISTS " + AudioDbContract.Samples.TABLE_NAME;
 
     public AudioDbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
     public void onCreate(SQLiteDatabase db) {
 
-        db.execSQL(SQL_CREATE_SAMPLE_TABLE);
         db.execSQL(SQL_CREATE_AUDIO_FILE_TABLE);
+        db.execSQL(SQL_CREATE_SAMPLE_TABLE);
     }
     public void onOpen(SQLiteDatabase db) {
 
@@ -46,8 +51,8 @@ public class AudioDbHelper extends SQLiteOpenHelper {
     }
 
     public void emptyDatabase(SQLiteDatabase db) {
-        db.execSQL(SQL_DELETE_SAMPLE_TABLE);
         db.execSQL(SQL_DELETE_AUDIO_FILE_TABLE);
+        db.execSQL(SQL_DELETE_SAMPLE_TABLE);
         onCreate(db);
     }
 }

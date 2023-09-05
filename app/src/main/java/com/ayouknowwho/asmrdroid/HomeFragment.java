@@ -78,9 +78,20 @@ public class HomeFragment extends Fragment {
         final TextView corrupted_text_view = (TextView) view.findViewById(R.id.corrupted_text_view);
         corrupted_text_view.setText(audioRepositoryViewModel.getCorrupted());
         final TextView audio_count_text_view = (TextView) view.findViewById(R.id.audio_count_text_view);
-        audio_count_text_view.setText(audioRepositoryViewModel.getNum_files());
+        Integer num_files = audioRepositoryViewModel.getNum_files();
+        if (num_files == null) {
+            audio_count_text_view.setText("Number of files not counted.");
+        } else {
+            audio_count_text_view.setText(audioRepositoryViewModel.getNum_files().toString() + " files in repository.");
+        }
         final TextView sample_count_text_view = (TextView) view.findViewById(R.id.sample_count_text_view);
-        sample_count_text_view.setText(audioRepositoryViewModel.getNum_samples());
+        Integer num_samples = audioRepositoryViewModel.getNum_samples();
+        if (num_samples == null) {
+            sample_count_text_view.setText("Number of samples not counted.");
+        } else {
+            sample_count_text_view.setText(audioRepositoryViewModel.getNum_samples().toString() + " files in repository");
+        }
+
 
         final Button empty_db_button = (Button) view.findViewById(R.id.empty_db_button);
         empty_db_button.setOnClickListener(new View.OnClickListener() {

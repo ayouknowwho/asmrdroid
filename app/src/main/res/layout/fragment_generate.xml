@@ -8,6 +8,7 @@
     tools:context=".GenerateFragment">
 
     <!-- TODO: Update blank fragment layout -->
+
     <TextView
         android:id="@+id/textView5"
         android:layout_width="wrap_content"
@@ -23,11 +24,11 @@
         android:id="@+id/textView4"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:text="@string/generate_tag_selector_text"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView5" />
+        app:layout_constraintTop_toBottomOf="@+id/external_files_dir_text" />
 
     <ScrollView
         android:id="@+id/scrollView5"
@@ -67,8 +68,10 @@
         app:layout_constraintTop_toBottomOf="@+id/scrollView5">
 
         <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/input_num_minutes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:inputType="number"
             android:text="@string/generate_default_minutes" />
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -91,5 +94,15 @@
         android:text="@string/generate_button_label"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textInputLayout2" />
+
+    <TextView
+        android:id="@+id/external_files_dir_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="@string/external_files_dir_text"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView5" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

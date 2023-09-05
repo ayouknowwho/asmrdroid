@@ -18,12 +18,15 @@ import com.google.android.material.tabs.TabLayout;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.time.LocalDateTime;
 
-public class MainActivity extends AppCompatActivity implements FilePicker, FileImportStarter {
+public class MainActivity extends AppCompatActivity implements FilePicker, FileImportStarter, GenerateAudioStarter {
 
     final static int PICK_FILE_REQUEST_CODE = 1;
     final static int IMPORT_FILE_REQUEST_CODE = 2;
+    final static int GENERATE_FILE_REQUEST_CODE = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,7 +153,61 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
 
         // Insert file reference into database
         audioRepositoryViewModel.storeAudioFile(outDestination);
+    }
 
+
+    public void generateAudioFile() {
+        // TODO: Assumes a valid uri is passed except default.default.default
+
+        // Import ViewModels
+        GenerateViewModel generateViewModel = new ViewModelProvider(this).get(GenerateViewModel.class);
+        AudioRepositoryViewModel audioRepositoryViewModel = new ViewModelProvider(this).get(AudioRepositoryViewModel.class);
+
+        // TODO: Currently generates from all imported files
+
+        // Get data from ViewModel and check valid
+        final Integer num_minutes_to_generate = generateViewModel.getNum_minutes_to_generate();
+        final Uri external_files_directory = generateViewModel.getExternal_files_dir();
+        if (external_files_directory.toString() == "default.default.default"){
+            Toast.makeText(this.getApplicationContext(), "Destination Error.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // New variables and conversion
+        final LocalDateTime now = LocalDateTime.now();
+        final String filename = now.toString() + ".mp3";
+        final Uri generate_file_uri = Uri.withAppendedPath(external_files_directory, filename);
+        final String generate_file_destination = generate_file_uri.getPath();
+
+        Toast.makeText(this.getApplicationContext(), String.join(" ", "Exporting to", generate_file_destination), Toast.LENGTH_SHORT).show();
+        /*
+        // Start Streams
+        InputStream is = null;
+        BufferedInputStream bis = null;
+        BufferedOutputStream bos = null;
+        int originalSize = 4096;
+
+        // Copy data from input to output
+        try {
+            // bos = new BufferedOutputStream(new FileOutputStream(outDestination));
+            File output_file = new File(generate_file_destination);
+            FileOutputStream fos = new FileOutputStream(output_file);
+            bos = new BufferedOutputStream(fos);
+            byte[] buf = new byte[originalSize];
+            bis.read(buf);
+            int writeCount = 0;
+            do {
+                bos.write(buf);
+                writeCount++;
+            } while (bis.read(buf) != -1);
+            Toast.makeText(this.getApplicationContext(), String.valueOf(writeCount * originalSize) + "kB File Generated.", Toast.LENGTH_SHORT).show();
+        } catch (java.io.FileNotFoundException e) {
+            Toast.makeText(this.getApplicationContext(), "Output file not found.", Toast.LENGTH_SHORT).show();
+            return;
+        } catch (java.io.IOException e) {
+            Toast.makeText(this.getApplicationContext(), "IO Error.", Toast.LENGTH_SHORT).show();
+            return;
+        } */
     }
 
 
@@ -187,12 +244,19 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             }
             /* TODO: This changes the ViewModel but the TextView on the ImportFragment only picks it up onCreateView, not onActivityResult */
         }
+
+        // TODO: The two else ifs below probably don't work yet because the activities don't have request codes
         else if (requestCode == IMPORT_FILE_REQUEST_CODE
                 && resultCode == Activity.RESULT_OK) {
             ImportViewModel importViewModel = new ViewModelProvider(this).get(ImportViewModel.class);
             Toast.makeText(this, "File Imported.", Toast.LENGTH_SHORT).show();
             // Reset the ViewModel Uri
             importViewModel.setImport_file_uri(Uri.parse("default.default.default"));
+        }
+
+        else if (requestCode == GENERATE_FILE_REQUEST_CODE
+                && resultCode == Activity.RESULT_OK) {
+            Toast.makeText(this, "File Generated.", Toast.LENGTH_SHORT).show();
         }
     }
 }

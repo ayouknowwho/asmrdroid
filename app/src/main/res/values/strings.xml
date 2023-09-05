@@ -23,4 +23,7 @@
     <string name="db_audio_count_default_text">Database audio files not yet counted.</string>
     <string name="db_sample_count_default_text">Database samples not yet counted.</string>
     <string name="empty_db_button_text">Delete the database and create a new one.</string>
+    <string name="out_folder_uri">Please select a folder for export.</string>
+    <string name="out_folder_button">Pick Folder</string>
+    <string name="external_files_dir_text">Error: external files directory unknown.</string>
 </resources>

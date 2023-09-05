@@ -19,9 +19,9 @@ public class AudioRepositoryViewModel extends AndroidViewModel {
             new MutableLiveData(new AudioRepository(this.getApplication()));
 
     public String getOpened() { return audioRepository.getValue().getOpened(); }
-    public String getNum_files() { return audioRepository.getValue().getFiles_count(); }
+    public Integer getNum_files() { return audioRepository.getValue().getFiles_count(); }
 
-    public String getNum_samples() {
+    public Integer getNum_samples() {
         return audioRepository.getValue().getSamples_count();
     }
 
