@@ -4,6 +4,7 @@ import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.view.LayoutInflater;
@@ -12,6 +13,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.ayouknowwho.asmrdroid.interfaces.FileImportStarter;
+import com.ayouknowwho.asmrdroid.interfaces.FilePicker;
 import com.ayouknowwho.asmrdroid.viewModel.ImportViewModel;
 
 /**
@@ -25,6 +28,8 @@ public class ImportFragment extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
+    private ImportViewModel importViewModel;
+
 
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -68,15 +73,13 @@ public class ImportFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_import, container, false);
 
         // Get the ViewModel
-        ImportViewModel importViewModel = new ViewModelProvider(requireActivity()).get(ImportViewModel.class);
+        importViewModel = new ViewModelProvider(requireActivity()).get(ImportViewModel.class);
 
+        // Set up the text view
         final TextView file_pick_text_view = (TextView) view.findViewById(R.id.file_pick_text_view);
-        // Set file pick text
-        final Uri file_uri = importViewModel.getImport_file_uri();
-        final String file_uri_string = file_uri.toString();
-        if (!file_uri_string.equals("default.default.default")) {
-            file_pick_text_view.setText(file_uri_string);
-        }
+
+        // Set initial file pick text
+        refreshTextView(file_pick_text_view);
 
         // Create a Button Listener for the File Picker
         final Button file_pick_button = (Button) view.findViewById(R.id.file_pick_button);
@@ -84,9 +87,6 @@ public class ImportFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 ((FilePicker) requireActivity()).pickFile();
-                final Uri file_uri2 = importViewModel.getImport_file_uri();
-                final String file_uri_string2 = file_uri2.toString();
-                file_pick_text_view.setText(file_uri_string2);
             }
         });
 
@@ -95,10 +95,27 @@ public class ImportFragment extends Fragment {
         import_file_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ((FileImportStarter) requireActivity()).importFile();
+                ((FileImportStarter) requireActivity()).importFileToRepository();
             }
         });
 
+        // Listen for changes to the import file uri caused by the picker to update the textview
+        importViewModel.getImport_file_live_uri().observe(getViewLifecycleOwner(), uiState -> {
+            refreshTextView(file_pick_text_view);
+        });
+
         return view;
+    }
+
+    private void refreshTextView(TextView tv) {
+        final MutableLiveData<Uri> import_file_live_uri= importViewModel.getImport_file_live_uri();
+        final Uri uri = import_file_live_uri.getValue();
+        String file_uri_string = uri.toString();
+        if (file_uri_string.equals("default.default.default")) {
+            tv.setText("Please select a file to import.");
+        }
+        else {
+            tv.setText(file_uri_string);
+        }
     }
 }

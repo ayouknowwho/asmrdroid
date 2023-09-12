@@ -27,6 +27,7 @@ public class HomeFragment extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
+    private AudioRepositoryViewModel audioRepositoryViewModel;
 
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -70,28 +71,13 @@ public class HomeFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
         // Get the ViewModel
-        AudioRepositoryViewModel audioRepositoryViewModel = new ViewModelProvider(requireActivity()).get(AudioRepositoryViewModel.class);
+        audioRepositoryViewModel = new ViewModelProvider(requireActivity()).get(AudioRepositoryViewModel.class);
 
-        // Set the TextViews
+        // Get the TextViews
         final TextView opened_text_view = (TextView) view.findViewById(R.id.opened_text_view);
-        opened_text_view.setText(audioRepositoryViewModel.getOpened());
         final TextView corrupted_text_view = (TextView) view.findViewById(R.id.corrupted_text_view);
-        corrupted_text_view.setText(audioRepositoryViewModel.getCorrupted());
         final TextView audio_count_text_view = (TextView) view.findViewById(R.id.audio_count_text_view);
-        Integer num_files = audioRepositoryViewModel.getNum_files();
-        if (num_files == null) {
-            audio_count_text_view.setText("Number of files not counted.");
-        } else {
-            audio_count_text_view.setText(audioRepositoryViewModel.getNum_files().toString() + " files in repository.");
-        }
         final TextView sample_count_text_view = (TextView) view.findViewById(R.id.sample_count_text_view);
-        Integer num_samples = audioRepositoryViewModel.getNum_samples();
-        if (num_samples == null) {
-            sample_count_text_view.setText("Number of samples not counted.");
-        } else {
-            sample_count_text_view.setText(audioRepositoryViewModel.getNum_samples().toString() + " files in repository");
-        }
-
 
         final Button empty_db_button = (Button) view.findViewById(R.id.empty_db_button);
         empty_db_button.setOnClickListener(new View.OnClickListener() {
@@ -102,6 +88,32 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        audioRepositoryViewModel.getUpdated().observe(getViewLifecycleOwner(), uiState -> {
+            refreshTextViews(opened_text_view, corrupted_text_view, audio_count_text_view, sample_count_text_view);
+            // The below seems to be not needed
+            // audioRepositoryViewModel.getUpdated().setValue(false);
+        });
+
         return view;
+    }
+
+    private void refreshTextViews(TextView opened_text_view, TextView corrupted_text_view, TextView audio_count_text_view, TextView sample_count_text_view) {
+        opened_text_view.setText(audioRepositoryViewModel.getOpened());
+
+        corrupted_text_view.setText(audioRepositoryViewModel.getCorrupted());
+
+        Integer num_files = audioRepositoryViewModel.getNum_files();
+        if (num_files == null) {
+            audio_count_text_view.setText("Number of files not counted.");
+        } else {
+            audio_count_text_view.setText(audioRepositoryViewModel.getNum_files().toString() + " files in repository.");
+        }
+
+        Integer num_samples = audioRepositoryViewModel.getNum_samples();
+        if (num_samples == null) {
+            sample_count_text_view.setText("Number of samples not counted.");
+        } else {
+            sample_count_text_view.setText(audioRepositoryViewModel.getNum_samples().toString() + " samples in repository");
+        }
     }
 }

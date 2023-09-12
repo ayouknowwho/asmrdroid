@@ -16,8 +16,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.ayouknowwho.asmrdroid.interfaces.GenerateAudioStarter;
 import com.ayouknowwho.asmrdroid.viewModel.GenerateViewModel;
-import com.ayouknowwho.asmrdroid.viewModel.ImportViewModel;
 import com.google.android.material.textfield.TextInputEditText;
 
 /**
@@ -86,7 +86,7 @@ public class GenerateFragment extends Fragment {
 
         final TextInputEditText input_num_minutes = (TextInputEditText) view.findViewById(R.id.input_num_minutes);
         if (num_minutes_to_generate == null) {
-            input_num_minutes.setText("0");
+            input_num_minutes.setText(generateViewModel.getNum_minutes_to_generate());
         } else {
             input_num_minutes.setText(num_minutes_to_generate.toString());
         }

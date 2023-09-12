@@ -1,4 +1,4 @@
-package com.ayouknowwho.asmrdroid;
+package com.ayouknowwho.asmrdroid.interfaces;
 
 public interface GenerateAudioStarter {
     public void generateAudioFile();
