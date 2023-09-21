@@ -1,28 +1,26 @@
 package com.ayouknowwho.asmrdroid;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentContainerView;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
+// import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+// import androidx.lifecycle.ViewModelProvider;
 
 import com.ayouknowwho.asmrdroid.interfaces.FileImportStarter;
 import com.ayouknowwho.asmrdroid.interfaces.FilePicker;
 import com.ayouknowwho.asmrdroid.interfaces.GenerateAudioStarter;
 import com.ayouknowwho.asmrdroid.model.ArraySizeException;
+import com.ayouknowwho.asmrdroid.model.AudioMathHelper;
 import com.ayouknowwho.asmrdroid.model.Sample;
 import com.ayouknowwho.asmrdroid.model.WavFile;
 import com.ayouknowwho.asmrdroid.model.WavFileException;
-import com.ayouknowwho.asmrdroid.model.AudioMathHelper;
 import com.ayouknowwho.asmrdroid.viewModel.AudioRepositoryViewModel;
 import com.ayouknowwho.asmrdroid.viewModel.GenerateViewModel;
 import com.ayouknowwho.asmrdroid.viewModel.ImportViewModel;
@@ -65,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
         // UI Creation
         setContentView(R.layout.activity_main);
         TabLayout tabLayout = findViewById(R.id.tabLayout);
-        FragmentContainerView fragmentContainerView = (FragmentContainerView) findViewById(R.id.fragmentContainerView);
+        // FragmentContainerView fragmentContainerView = (FragmentContainerView) findViewById(R.id.fragmentContainerView);
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
@@ -127,8 +125,22 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
 
 
     public void generateSamplesFromAllImportedFiles() {
-        Runnable generateRunnable = new GenerateRunnable();
-        executorService.execute(generateRunnable);
+        Runnable generateSamplesRunnable = new GenerateSamplesRunnable();
+        executorService.execute(generateSamplesRunnable);
+    }
+
+
+    public void generateAudioFile() {
+        Runnable generateAudioFileRunnable = new GenerateAudioFileRunnable();
+        executorService.execute(generateAudioFileRunnable);
+        /*
+        AsyncTask.execute(new Runnable() {
+
+            @Override
+            public void run() {
+
+        });
+        */
     }
 
 
@@ -139,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
         Integer source_id = audioRepositoryViewModel.getIdFromFileIndex(file_index);
         String tag = audioRepositoryViewModel.getTagFromFileIndex(file_index);
         File inFile;
-        WavFile inWavFile = null;
+        WavFile inWavFile;
 
         Log.i("Sample Generation","Generating samples for " + inFilename);
 
@@ -154,6 +166,7 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             Toast.makeText(this.getApplicationContext(), "IO Error when opening file listed in database.", Toast.LENGTH_SHORT).show();
             return;
         } catch (WavFileException e) {
+            e.printStackTrace();
             Toast.makeText(this.getApplicationContext(), "WAV Error when opening file listed in database.", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -205,10 +218,11 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
         // MIN_LENGTH_MS and MAX_LENGTH_MS, store each chunk as a sample
         long end_frame = AudioMathHelper.ConvertPercentToNthFrame(END_PERCENT, num_frames);
         Integer sample_count = 0;
-        Log.i("Sample Generation","Generating samples from frame " + Long.toString(current_frame));
+        Log.i("Sample Generation","Generating samples from frame " + current_frame);
         try {
             while (current_frame < end_frame) {
                 long frame_shortfall = end_frame - current_frame;
+                Log.i("Sample Generation",frame_shortfall + " frames left to convert to samples.");
                 if (frame_shortfall < min_sample_frames) {
                     break;
                 } else {
@@ -223,14 +237,14 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
                         Toast.makeText(this.getApplicationContext(), "MAX LENGTH too long, will not fit in array.", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    int[] buffer = new int[buffer_size];
+                    double[] buffer = new double[buffer_size];
 
                     // Read into the buffer and then convert to a byte array
                     inWavFile.readFrames(buffer, sample_length_frames);
-                    byte[] audio_data = AudioMathHelper.convertIntBufferToByteBuffer(buffer);
+                    // byte[] audio_data = AudioMathHelper.convertDoubleArrayToByteArray(buffer);
 
                     // Create a new Sample and store it
-                    Sample sample = new Sample(source_id, tag, num_channels, num_frames, bits_per_sample, sample_rate, audio_data);
+                    Sample sample = new Sample(source_id, tag, num_channels, sample_length_frames, bits_per_sample, sample_rate, buffer);
                     audioRepositoryViewModel.storeSample(sample);
 
                     // Update the counters
@@ -246,68 +260,11 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             return;
         }
 
-        Toast.makeText(this.getApplicationContext(),sample_count.toString() + " samples generated for " + inFilename, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this.getApplicationContext(),sample_count + " samples generated for " + inFilename, Toast.LENGTH_SHORT).show();
+        Log.i("Sample Generation",sample_count + " samples generated for " + inFilename);
+
     }
 
-
-    public void generateAudioFile() {
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                // TODO: Assumes a valid uri is passed except default.default.default
-                // TODO: Currently generates from all imported files
-                Looper.prepare();
-                // Check samples are generated
-                generateSamplesFromAllImportedFiles();
-
-                // Get data from ViewModel and check valid
-                final Integer num_minutes_to_generate = generateViewModel.getNum_minutes_to_generate();
-                final Uri external_files_directory = generateViewModel.getExternal_files_dir();
-                if (external_files_directory.toString() == "default.default.default"){
-                    Toast.makeText(MainActivity.super.getApplicationContext(), "Destination Error.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                // New variables and conversion
-                final LocalDateTime now = LocalDateTime.now();
-                final String filename = now.toString() + ".mp3";
-                final Uri generate_file_uri = Uri.withAppendedPath(external_files_directory, filename);
-                final String generate_file_destination = generate_file_uri.getPath();
-
-
-
-                Toast.makeText(MainActivity.super.getApplicationContext(), String.join(" ", "Exporting to", generate_file_destination), Toast.LENGTH_SHORT).show();
-        /*
-        // Start Streams
-        InputStream is = null;
-        BufferedInputStream bis = null;
-        BufferedOutputStream bos = null;
-        int originalSize = 4096;
-
-        // Copy data from input to output
-        try {
-            // bos = new BufferedOutputStream(new FileOutputStream(outDestination));
-            File output_file = new File(generate_file_destination);
-            FileOutputStream fos = new FileOutputStream(output_file);
-            bos = new BufferedOutputStream(fos);
-            byte[] buf = new byte[originalSize];
-            bis.read(buf);
-            int writeCount = 0;
-            do {
-                bos.write(buf);
-                writeCount++;
-            } while (bis.read(buf) != -1);
-            Toast.makeText(this.getApplicationContext(), String.valueOf(writeCount * originalSize) + "kB File Generated.", Toast.LENGTH_SHORT).show();
-        } catch (java.io.FileNotFoundException e) {
-            Toast.makeText(this.getApplicationContext(), "Output file not found.", Toast.LENGTH_SHORT).show();
-            return;
-        } catch (java.io.IOException e) {
-            Toast.makeText(this.getApplicationContext(), "IO Error.", Toast.LENGTH_SHORT).show();
-            return;
-        } */
-            }
-        });
-    }
 
     private String getUniqueFilename(Uri uri) {
         // TODO: Implement, this currently returns a non-unique destination
@@ -318,13 +275,26 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
     }
 
 
+    private String getGenerateFileDestination(String file_type) throws Exception {
+        // TODO: Assumes a valid uri is passed except default.default.default
+        final Uri external_files_directory = generateViewModel.getExternal_files_dir();
+        if (external_files_directory.toString().equals("default.default.default")){
+            throw new Exception();
+        }
+        final LocalDateTime now = LocalDateTime.now();
+        final String filename = now.toString() + "." + file_type;
+        final Uri generate_file_uri = Uri.withAppendedPath(external_files_directory, filename);
+        return generate_file_uri.getPath();
+    }
+
+
     @Override
     public void onActivityResult(int requestCode, int resultCode,
                                  Intent resultData) {
         super.onActivityResult(requestCode, resultCode, resultData);
         if (requestCode == PICK_FILE_REQUEST_CODE
                 && resultCode == Activity.RESULT_OK) {
-            Uri uri = null;
+            Uri uri;
             if (resultData != null) {
                 uri = resultData.getData();
                 importViewModel.setImport_file_uri(uri);
@@ -333,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
     }
 
 
-    public class LooperPrepareRunnable implements Runnable {
+    public static class LooperPrepareRunnable implements Runnable {
         public void run() {
             Looper.prepare();
         }
@@ -343,11 +313,10 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
     public class ImportFileRunnable implements Runnable {
         public void run(){
             // TODO: Assumes a valid uri is passed except default.default.default
-
             // Get the Uri
             final Uri file_uri = importViewModel.getImport_file_live_uri().getValue();
             final String file_uri_string = file_uri.toString();
-            if (file_uri_string == "default.default.default"){
+            if (file_uri_string.equals("default.default.default")){
                 Toast.makeText(MainActivity.this, "File not chosen.", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -366,12 +335,8 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             try {
                 is = getContentResolver().openInputStream(file_uri);
                 bis = new BufferedInputStream(is);
-                read_chunk_size = is.available();
             } catch (java.io.FileNotFoundException e) {
                 Toast.makeText(MainActivity.this, "Input file not found.", Toast.LENGTH_SHORT).show();
-                return;
-            } catch (java.io.IOException e) {
-                Toast.makeText(MainActivity.this, "IO Error while opening streams.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -379,14 +344,22 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             try {
                 // bos = new BufferedOutputStream(new FileOutputStream(outDestination));
                 bos = new BufferedOutputStream(MainActivity.this.openFileOutput(outDestination, MODE_PRIVATE));
-                byte[] buf = new byte[read_chunk_size];
-                bis.read(buf);
+                byte[] buf;
                 int writeCount = 0;
-                do {
+                int max_chunk_size = 16 * 1024;
+                while (true) {
+                    int available = is.available();
+                    // Log.i("File import",available + " bytes remain.");
+                    if (available == 0) {
+                        break;
+                    }
+                    read_chunk_size = Math.min(available,max_chunk_size);
+                    buf = new byte[read_chunk_size];
+                    bis.read(buf);
                     bos.write(buf);
-                    writeCount++;
-                } while (bis.read(buf) != -1);
-                Toast.makeText(MainActivity.this, String.valueOf(writeCount * read_chunk_size) + "kB File Imported.", Toast.LENGTH_SHORT).show();
+                    writeCount += read_chunk_size;
+                }
+                Toast.makeText(MainActivity.this, (writeCount / 1000000) + "MB File Imported.", Toast.LENGTH_SHORT).show();
             } catch (java.io.FileNotFoundException e) {
                 Toast.makeText(MainActivity.this, "Output file not found.", Toast.LENGTH_SHORT).show();
                 return;
@@ -396,7 +369,7 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             }
 
             // Insert file reference into database
-            audioRepositoryViewModel.storeAudioFile(outDestination);
+            audioRepositoryViewModel.storeAudioFile(outDestination, audioRepositoryViewModel.get_default_tag());
 
             // Reset import file destination
             importViewModel.setImport_file_uri(Uri.parse("default.default.default"));
@@ -409,11 +382,16 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             } catch (IOException e) {
                 Toast.makeText(MainActivity.this, "IO Error while closing streams.", Toast.LENGTH_SHORT).show();
             }
+
+            // Generate Samples
+
+            // Check samples are generated
+            generateSamplesFromAllImportedFiles();
         }
     }
 
 
-    public class GenerateRunnable implements Runnable {
+    public class GenerateSamplesRunnable implements Runnable {
         public void run() {
             Integer num_files = audioRepositoryViewModel.getNum_files();
             for (Integer file_index = 0; file_index < num_files; file_index++) {
@@ -422,6 +400,94 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
                 }
             }
             Toast.makeText(MainActivity.this, "All imported files have had samples extracted.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public class GenerateAudioFileRunnable implements Runnable {
+        public void run() {
+            // TODO: Currently generates from all imported files, tags are not considered.
+            Sample test_sample = audioRepositoryViewModel.retrieveRandomSampleByTag(audioRepositoryViewModel.get_default_tag());
+
+            // TODO: This just gets file info from a random Sample, so will break if there is more than one type of sample in the database
+            final Integer num_channels = test_sample.getNum_channels();
+            final long sample_rate = test_sample.getSample_rate();
+            final Integer bits_per_sample = test_sample.getBits_per_sample();
+
+            // TODO: user chooses destination file format
+            final String file_type = generateViewModel.getTargetFileType();
+            final Integer num_minutes_to_generate = generateViewModel.getNum_minutes_to_generate();
+            final long num_frames_to_generate = AudioMathHelper.numFramesInXMinutes(sample_rate, num_minutes_to_generate);
+                /*
+                final Integer num_channels = generateViewModel.getTargetNumChannels();
+                final long sample_rate = generateViewModel.getTargetSampleRate();
+                final Integer bits_per_sample = generateViewModel.getTargetBitsPerSample();
+                */
+
+            // Get file destination
+            final String generate_file_destination;
+            try {
+                generate_file_destination = getGenerateFileDestination(file_type);
+            } catch (Exception e) {
+                Toast.makeText(MainActivity.super.getApplicationContext(), "Error with new file destination.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Toast.makeText(MainActivity.super.getApplicationContext(), String.join(" ", "Exporting to", generate_file_destination), Toast.LENGTH_SHORT).show();
+
+            // Create File and open
+            File outFile;
+            WavFile outWavFile;
+            try {
+                // Open File as WavFile
+                outFile = new File(generate_file_destination);
+                // outFile = getFileStreamPath(generate_file_destination);
+                outWavFile = WavFile.newWavFile(outFile, num_channels, num_frames_to_generate, bits_per_sample, sample_rate);
+            } catch (java.io.IOException e) {
+                Toast.makeText(MainActivity.super.getApplicationContext(), "IO Error when opening file.", Toast.LENGTH_SHORT).show();
+                return;
+            } catch (WavFileException e) {
+                Toast.makeText(MainActivity.super.getApplicationContext(), "WAV Error when opening file.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Append new samples until we can't fit any more
+            long overall_frames_written = 0;
+            try {
+                while (overall_frames_written < num_frames_to_generate) {
+                    // TODO: Get a sample by tag, not just default
+                    Sample retrieved_sample = audioRepositoryViewModel.retrieveRandomSampleByTag(audioRepositoryViewModel.get_default_tag());
+
+                    // Convert samples from multiple files to the same sample format
+                    // TODO: complete conversion function
+                    // Sample converted_sample = AudioMathHelper.convertedSample(retrieved_sample, sample_rate, bits_per_sample, num_channels);
+                    Sample converted_sample = retrieved_sample;
+
+                    // Check we won't overwrite the end of the file
+                    Integer num_frames_to_add = converted_sample.getNum_frames();
+                    if (overall_frames_written + retrieved_sample.getNum_frames() > num_frames_to_generate) {
+                        break;
+                    }
+
+                    // Append new frames to the file
+                    double[] int_buffer = converted_sample.getAudio_data();
+                    outWavFile.writeFrames(int_buffer, num_frames_to_add);
+
+                    // Increment overall_frames_written
+                    overall_frames_written += converted_sample.getNum_frames();
+                }
+            } catch (java.io.IOException e) {
+                Toast.makeText(MainActivity.super.getApplicationContext(), "IO Error when writing file, output file corrupted.", Toast.LENGTH_SHORT).show();
+                return;
+            } catch (WavFileException e) {
+                Toast.makeText(MainActivity.super.getApplicationContext(), "WAV Error when writing file, output file corrupted.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Close the file
+            try {
+                outWavFile.close();
+            } catch (java.io.IOException e) {
+                Toast.makeText(MainActivity.super.getApplicationContext(), "IO Error when closing file, output file corrupted.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 }

@@ -16,6 +16,11 @@ public class AudioRepositoryViewModel extends AndroidViewModel {
 
     private MutableLiveData<Boolean> updated;
 
+    public String get_default_tag() {
+        return DEFAULT_TAG;
+    }
+
+    private final String DEFAULT_TAG = "default";
 
     public AudioRepositoryViewModel(@NonNull Application application) {
         super(application);
@@ -38,8 +43,8 @@ public class AudioRepositoryViewModel extends AndroidViewModel {
         return audioRepository.getValue().getCorrupted();
     }
 
-    public void storeAudioFile(String filename) {
-        audioRepository.getValue().storeAudioFile(filename);
+    public void storeAudioFile(String filename, String tag) {
+        audioRepository.getValue().storeAudioFile(filename, tag);
         updated.postValue(true);
     }
     public void storeSample(Sample sample) {
@@ -69,5 +74,9 @@ public class AudioRepositoryViewModel extends AndroidViewModel {
 
     public String getTagFromFileIndex(Integer fileIndex) {
         return audioRepository.getValue().getTagFromFileIndex(fileIndex);
+    }
+
+    public Sample retrieveRandomSampleByTag(String tag) {
+        return audioRepository.getValue().retrieveRandomSampleByTag(tag);
     }
 }

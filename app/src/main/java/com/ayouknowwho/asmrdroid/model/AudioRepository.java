@@ -5,10 +5,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.provider.MediaStore;
+import android.util.Log;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.util.Random;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class AudioRepository {
@@ -19,6 +22,7 @@ public class AudioRepository {
     private Integer samples_count;
     private String corrupted;
     private Context storedContext;
+    private final Integer MAX_CURSOR_WINDOW_SIZE = 1000000;
 
     public AudioRepository(Context newContext) {
         opened = "Repository not opened.";
@@ -32,7 +36,7 @@ public class AudioRepository {
             setOpened("Repository opened: " + audioDbHelper.getDatabaseName());
         } catch(SQLiteException e) {
             setOpened("Error opening repository.");
-        };
+        }
         checkRepository();
     }
 
@@ -64,19 +68,32 @@ public class AudioRepository {
         return corrupted;
     }
 
-    public void storeAudioFile(String filename) {
+    public void storeAudioFile(String filename, String tag) {
         ContentValues pairs = new ContentValues();
-        pairs.put(AudioDbContract.AudioFiles.COLUMN_NAME_TAG, "default");
+        pairs.put(AudioDbContract.AudioFiles.COLUMN_NAME_TAG, tag);
         pairs.put(AudioDbContract.AudioFiles.COLUMN_NAME_FILENAME, filename);
         audioDb.insert(AudioDbContract.AudioFiles.TABLE_NAME,null, pairs);
         checkRepository();
     }
 
     public void storeSample(Sample sample) {
+        // Convert the Sample object to a byte array
+        ByteArrayOutputStream bos;
+        ObjectOutputStream oos;
+        try {
+            bos = new ByteArrayOutputStream();
+            oos = new ObjectOutputStream(bos);
+            oos.writeObject(sample);
+        } catch (java.io.IOException e) {
+            Log.i("File import","IO error storing sample.");
+            return;
+        }
+
+        // Store the byte array with the metadata in the database
         ContentValues pairs = new ContentValues();
         pairs.put(AudioDbContract.Samples.COLUMN_NAME_SOURCE_ID, sample.getSource_id());
-        pairs.put(AudioDbContract.Samples.COLUMN_NAME_TAG, "default");
-        pairs.put(AudioDbContract.Samples.COLUMN_NAME_AUDIO_DATA, sample.getAudio_data());
+        pairs.put(AudioDbContract.Samples.COLUMN_NAME_TAG, sample.getTag());
+        pairs.put(AudioDbContract.Samples.COLUMN_NAME_SAMPLE_OBJECT_DATA, bos.toByteArray());
         pairs.put(AudioDbContract.Samples.COLUMN_NAME_NUM_CHANNELS, sample.getNum_channels());
         pairs.put(AudioDbContract.Samples.COLUMN_NAME_NUM_FRAMES, sample.getNum_frames());
         pairs.put(AudioDbContract.Samples.COLUMN_NAME_BITS_PER_SAMPLE, sample.getBits_per_sample());
@@ -85,42 +102,58 @@ public class AudioRepository {
         checkRepository();
     }
 
-    private Sample retrieveSampleByTag(String tag) {
+    public Sample retrieveRandomSampleByTag(String tag) {
         // TODO: The below would need to be changed to get samples_count by tag
         final Integer random_sample_number = ThreadLocalRandom.current().nextInt(0, samples_count);
+        Log.i("Sample Retrieval","Retrieving sample " + random_sample_number);
 
-        // TODO: The below would need to be changed to only select samples with the correct tag
-        final String RETRIEVE_SAMPLE_SQL = "SELECT FROM " + AudioDbContract.Samples.TABLE_NAME +
-                " LIMIT 1 OFFSET " + random_sample_number.toString();
+        final String RETRIEVE_SAMPLE_DATA_LENGTH_SQL = "SELECT LENGTH(" + AudioDbContract.Samples.COLUMN_NAME_SAMPLE_OBJECT_DATA +
+                ") FROM " + AudioDbContract.Samples.TABLE_NAME +
+                " LIMIT 1 OFFSET " + random_sample_number;
+        Cursor sample_data_length_cursor = audioDb.rawQuery(RETRIEVE_SAMPLE_DATA_LENGTH_SQL, null);
+        sample_data_length_cursor.moveToFirst();
+        Integer data_length = sample_data_length_cursor.getInt(0);
+        sample_data_length_cursor.close();
+        Log.i("Sample Generation","Retrieved data length " + data_length);
 
-        Cursor sample_cursor = audioDb.rawQuery(RETRIEVE_SAMPLE_SQL, null);
-        sample_cursor.moveToFirst();
+        // Get the blob as a byte array
+        Integer blob_offset = 0; // SQL SUBSTR is 1 indexed
+        byte[] audio_data = new byte[data_length];
+        while (blob_offset < data_length) {
+            Integer left_to_read = data_length - blob_offset;
+            Integer size_of_read;
 
-        Integer source_id_index = sample_cursor.getColumnIndex(AudioDbContract.Samples.COLUMN_NAME_SOURCE_ID);
-        Integer source_id = sample_cursor.getInt(source_id_index);
-        Integer num_channels_index = sample_cursor.getColumnIndex(AudioDbContract.Samples.COLUMN_NAME_NUM_CHANNELS);
-        Integer num_channels = sample_cursor.getInt(num_channels_index);
-        Integer num_frames_index = sample_cursor.getColumnIndex(AudioDbContract.Samples.COLUMN_NAME_NUM_FRAMES);
-        long num_frames = Long.parseLong(sample_cursor.getString(num_frames_index));
-        Integer bits_per_sample_index = sample_cursor.getColumnIndex(AudioDbContract.Samples.COLUMN_NAME_BITS_PER_SAMPLE);
-        Integer bits_per_sample = sample_cursor.getInt(bits_per_sample_index);
-        Integer audio_data_index = sample_cursor.getColumnIndex(AudioDbContract.Samples.COLUMN_NAME_AUDIO_DATA);
-        Integer sample_rate_index = sample_cursor.getColumnIndex(AudioDbContract.Samples.COLUMN_NAME_SAMPLE_RATE);
-        long sample_rate = Long.parseLong(sample_cursor.getString(sample_rate_index));
-        byte[] audio_data = sample_cursor.getBlob(audio_data_index);
+            size_of_read = Math.min(left_to_read, MAX_CURSOR_WINDOW_SIZE);
+            
+            final String RETRIEVE_SAMPLE_DATA_SQL = "SELECT SUBSTR(" + AudioDbContract.Samples.COLUMN_NAME_SAMPLE_OBJECT_DATA +
+                    ", " + (blob_offset + 1) + ", " + size_of_read + // SUBSTR offset in SQL is 1-indexed
+            ") FROM " + AudioDbContract.Samples.TABLE_NAME +
+                    " LIMIT 1 OFFSET " + random_sample_number;
 
-        sample_cursor.close();
+            Cursor blob_chunk_cursor = audioDb.rawQuery(RETRIEVE_SAMPLE_DATA_SQL,null);
+            blob_chunk_cursor.moveToFirst();
+            byte[] blob_chunk = blob_chunk_cursor.getBlob(0);
+            blob_chunk_cursor.close();
 
-        Sample sample = new Sample(source_id, tag, num_channels, num_frames, bits_per_sample, sample_rate, audio_data);
-        return sample;
-    }
-
-    public Sample[] retrieveSamplesByTag(String tag, int quantity) {
-        Sample[] samples = new Sample[quantity];
-        for (int i = 0; i < quantity; i++) {
-            samples[i] = retrieveSampleByTag(tag);
+            System.arraycopy(blob_chunk, 0, audio_data, blob_offset, size_of_read);
+            blob_offset += size_of_read;
         }
-        return samples;
+        Log.i("Sample Generation","Final blob offset " + blob_offset);
+
+        // Extract the byte array to a Sample object
+        Sample sample = null;
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(audio_data);
+            ObjectInputStream ois = new ObjectInputStream(bis);
+            sample = (Sample) ois.readObject();
+        } catch (java.io.IOException e) {
+            Log.i("Sample Generation","IO Error while reading Sample from database");
+        } catch (ClassNotFoundException e) {
+            Log.i("Sample Generation","ClassNotFound Error while reading Sample from database");
+        }
+
+        // Sample sample = new Sample(source_id, tag, num_channels, num_frames, bits_per_sample, sample_rate, audio_data);
+        return sample;
     }
 
     public void checkRepository() {
@@ -176,7 +209,7 @@ public class AudioRepository {
         // Check for any sample with matching source_id
         final String SAMPLE_CHECK_FROM_SOURCE_ID_SQL = "SELECT * FROM " + AudioDbContract.Samples.TABLE_NAME +
                 " WHERE " + AudioDbContract.Samples.COLUMN_NAME_SOURCE_ID +
-                " = " + source_id.toString();
+                " = " + source_id;
         Cursor sample_cursor = audioDb.rawQuery(SAMPLE_CHECK_FROM_SOURCE_ID_SQL, null);
         if (sample_cursor.getCount() == 0) {
             sample_cursor.close();

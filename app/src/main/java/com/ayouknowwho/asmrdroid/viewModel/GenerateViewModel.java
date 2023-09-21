@@ -8,7 +8,16 @@ public class GenerateViewModel extends ViewModel {
     private final Integer START_PERCENT = 50;
     private final Integer END_PERCENT = 90;
     private final float MIN_SAMPLE_LENGTH_S = (float) 0.4;
-    private final float MAX_SAMPLE_LENGTH_S = 2;
+    private final float MAX_SAMPLE_LENGTH_S = 1;
+
+    public String getTargetFileType() {
+        return TARGET_FILE_TYPE;
+    }
+
+    private final String TARGET_FILE_TYPE = "wav";
+    private final Integer TARGET_NUM_CHANNELS = 2;
+    private final long TARGET_SAMPLE_RATE = 44100;
+    private final Integer TARGET_BITS_PER_SAMPLE = 24;
     private Integer num_minutes_to_generate;
     private Uri external_files_dir;
 
@@ -48,5 +57,17 @@ public class GenerateViewModel extends ViewModel {
 
     public float getMaxSampleLengthS() {
         return MAX_SAMPLE_LENGTH_S;
+    }
+
+    public Integer getTargetNumChannels() {
+        return TARGET_NUM_CHANNELS;
+    }
+
+    public long getTargetSampleRate() {
+        return TARGET_SAMPLE_RATE;
+    }
+
+    public Integer getTargetBitsPerSample() {
+        return TARGET_BITS_PER_SAMPLE;
     }
 }

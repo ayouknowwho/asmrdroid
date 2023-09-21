@@ -1,15 +1,17 @@
 package com.ayouknowwho.asmrdroid.model;
 
-public class Sample {
+import java.io.Serializable;
+
+public class Sample implements Serializable {
     private Integer source_id;
     private String tag;
     private Integer num_channels;
-    private long num_frames;
+    private Integer num_frames;
     private Integer bits_per_sample;
     private long sample_rate;
-    private byte[] audio_data;
+    private double[] audio_data;
 
-    public Sample(Integer source_id, String tag, Integer num_channels, long num_frames, Integer bits_per_sample, long sample_rate, byte[] audio_data) {
+    public Sample(Integer source_id, String tag, Integer num_channels, Integer num_frames, Integer bits_per_sample, long sample_rate, double[] audio_data) {
         this.source_id = source_id;
         this.tag = tag;
         this.num_channels = num_channels;
@@ -27,7 +29,7 @@ public class Sample {
         return tag;
     }
 
-    public byte[] getAudio_data() {
+    public double[] getAudio_data() {
         return audio_data;
     }
 
@@ -39,7 +41,7 @@ public class Sample {
         this.tag = tag;
     }
 
-    public void setAudio_data(byte[] audio_data) {
+    public void setAudio_data(double[] audio_data) {
         this.audio_data = audio_data;
     }
 
@@ -51,11 +53,11 @@ public class Sample {
         this.num_channels = num_channels;
     }
 
-    public long getNum_frames() {
+    public Integer getNum_frames() {
         return num_frames;
     }
 
-    public void setNum_frames(long num_frames) {
+    public void setNum_frames(Integer num_frames) {
         this.num_frames = num_frames;
     }
 

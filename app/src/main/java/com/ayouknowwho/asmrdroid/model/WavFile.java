@@ -9,7 +9,11 @@ package com.ayouknowwho.asmrdroid.model;
 
 // Version 1.0
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 
 public class WavFile
 {

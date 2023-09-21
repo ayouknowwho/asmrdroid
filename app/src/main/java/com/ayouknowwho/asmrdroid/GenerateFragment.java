@@ -2,10 +2,6 @@ package com.ayouknowwho.asmrdroid;
 
 import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.os.Environment;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -15,6 +11,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.ayouknowwho.asmrdroid.interfaces.GenerateAudioStarter;
 import com.ayouknowwho.asmrdroid.viewModel.GenerateViewModel;
