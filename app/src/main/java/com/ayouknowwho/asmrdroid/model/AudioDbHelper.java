@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class AudioDbHelper extends SQLiteOpenHelper {
     // If you change the database schema, you must increment the database version.
     // This is so onUpgrade is called.
-    public static final int DATABASE_VERSION = 6;
+    public static final int DATABASE_VERSION = 7;
     public static final String DATABASE_NAME = "audio.db";
 
     private static final String SQL_CREATE_AUDIO_FILE_TABLE =
@@ -21,10 +21,6 @@ public class AudioDbHelper extends SQLiteOpenHelper {
                     AudioDbContract.Samples.COLUMN_NAME_ID + " INTEGER PRIMARY KEY," +
                     AudioDbContract.Samples.COLUMN_NAME_SOURCE_ID + " INTEGER NOT NULL," +
                     AudioDbContract.Samples.COLUMN_NAME_TAG + " TEXT," +
-                    AudioDbContract.Samples.COLUMN_NAME_NUM_CHANNELS + " INTEGER," +
-                    AudioDbContract.Samples.COLUMN_NAME_NUM_FRAMES + " INTEGER," +
-                    AudioDbContract.Samples.COLUMN_NAME_BITS_PER_SAMPLE + " INTEGER," +
-                    AudioDbContract.Samples.COLUMN_NAME_SAMPLE_RATE + " TEXT," +
                     AudioDbContract.Samples.COLUMN_NAME_SAMPLE_OBJECT_DATA + " BLOB," +
                     "FOREIGN KEY(" + AudioDbContract.Samples.COLUMN_NAME_SOURCE_ID + ") " +
                     "REFERENCES " + AudioDbContract.AudioFiles.TABLE_NAME + "(" +

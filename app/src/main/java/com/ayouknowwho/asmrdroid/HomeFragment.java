@@ -71,12 +71,12 @@ public class HomeFragment extends Fragment {
         audioRepositoryViewModel = new ViewModelProvider(requireActivity()).get(AudioRepositoryViewModel.class);
 
         // Get the TextViews
-        final TextView opened_text_view = (TextView) view.findViewById(R.id.opened_text_view);
-        final TextView corrupted_text_view = (TextView) view.findViewById(R.id.corrupted_text_view);
-        final TextView audio_count_text_view = (TextView) view.findViewById(R.id.audio_count_text_view);
-        final TextView sample_count_text_view = (TextView) view.findViewById(R.id.sample_count_text_view);
+        final TextView opened_text_view = view.findViewById(R.id.opened_text_view);
+        final TextView corrupted_text_view = view.findViewById(R.id.corrupted_text_view);
+        final TextView audio_count_text_view = view.findViewById(R.id.audio_count_text_view);
+        final TextView sample_count_text_view = view.findViewById(R.id.sample_count_text_view);
 
-        final Button empty_db_button = (Button) view.findViewById(R.id.empty_db_button);
+        final Button empty_db_button = view.findViewById(R.id.empty_db_button);
         empty_db_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -87,14 +87,13 @@ public class HomeFragment extends Fragment {
 
         audioRepositoryViewModel.getUpdated().observe(getViewLifecycleOwner(), uiState -> {
             refreshTextViews(opened_text_view, corrupted_text_view, audio_count_text_view, sample_count_text_view);
-            // The below seems to be not needed
-            // audioRepositoryViewModel.getUpdated().setValue(false);
         });
 
         return view;
     }
 
     private void refreshTextViews(TextView opened_text_view, TextView corrupted_text_view, TextView audio_count_text_view, TextView sample_count_text_view) {
+        // TODO: This should be on a background thread
         opened_text_view.setText(audioRepositoryViewModel.getOpened());
 
         corrupted_text_view.setText(audioRepositoryViewModel.getCorrupted());

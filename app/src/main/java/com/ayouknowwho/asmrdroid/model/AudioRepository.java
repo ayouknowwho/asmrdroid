@@ -73,7 +73,7 @@ public class AudioRepository {
         pairs.put(AudioDbContract.AudioFiles.COLUMN_NAME_TAG, tag);
         pairs.put(AudioDbContract.AudioFiles.COLUMN_NAME_FILENAME, filename);
         audioDb.insert(AudioDbContract.AudioFiles.TABLE_NAME,null, pairs);
-        checkRepository();
+        updateFilesCount();
     }
 
     public void storeSample(Sample sample) {
@@ -94,53 +94,23 @@ public class AudioRepository {
         pairs.put(AudioDbContract.Samples.COLUMN_NAME_SOURCE_ID, sample.getSource_id());
         pairs.put(AudioDbContract.Samples.COLUMN_NAME_TAG, sample.getTag());
         pairs.put(AudioDbContract.Samples.COLUMN_NAME_SAMPLE_OBJECT_DATA, bos.toByteArray());
-        pairs.put(AudioDbContract.Samples.COLUMN_NAME_NUM_CHANNELS, sample.getNum_channels());
-        pairs.put(AudioDbContract.Samples.COLUMN_NAME_NUM_FRAMES, sample.getNum_frames());
-        pairs.put(AudioDbContract.Samples.COLUMN_NAME_BITS_PER_SAMPLE, sample.getBits_per_sample());
-        pairs.put(AudioDbContract.Samples.COLUMN_NAME_SAMPLE_RATE, sample.getSample_rate());
         audioDb.insert(AudioDbContract.Samples.TABLE_NAME, null, pairs);
-        checkRepository();
+        updateSamplesCount();
     }
 
     public Sample retrieveRandomSampleByTag(String tag) {
         // TODO: The below would need to be changed to get samples_count by tag
         final Integer random_sample_number = ThreadLocalRandom.current().nextInt(0, samples_count);
-        Log.i("Sample Retrieval","Retrieving sample " + random_sample_number);
-
-        final String RETRIEVE_SAMPLE_DATA_LENGTH_SQL = "SELECT LENGTH(" + AudioDbContract.Samples.COLUMN_NAME_SAMPLE_OBJECT_DATA +
-                ") FROM " + AudioDbContract.Samples.TABLE_NAME +
-                " LIMIT 1 OFFSET " + random_sample_number;
-        Cursor sample_data_length_cursor = audioDb.rawQuery(RETRIEVE_SAMPLE_DATA_LENGTH_SQL, null);
-        sample_data_length_cursor.moveToFirst();
-        Integer data_length = sample_data_length_cursor.getInt(0);
-        sample_data_length_cursor.close();
-        Log.i("Sample Generation","Retrieved data length " + data_length);
 
         // Get the blob as a byte array
-        Integer blob_offset = 0; // SQL SUBSTR is 1 indexed
-        byte[] audio_data = new byte[data_length];
-        while (blob_offset < data_length) {
-            Integer left_to_read = data_length - blob_offset;
-            Integer size_of_read;
-
-            size_of_read = Math.min(left_to_read, MAX_CURSOR_WINDOW_SIZE);
-            
-            final String RETRIEVE_SAMPLE_DATA_SQL = "SELECT SUBSTR(" + AudioDbContract.Samples.COLUMN_NAME_SAMPLE_OBJECT_DATA +
-                    ", " + (blob_offset + 1) + ", " + size_of_read + // SUBSTR offset in SQL is 1-indexed
-            ") FROM " + AudioDbContract.Samples.TABLE_NAME +
-                    " LIMIT 1 OFFSET " + random_sample_number;
-
-            Cursor blob_chunk_cursor = audioDb.rawQuery(RETRIEVE_SAMPLE_DATA_SQL,null);
-            blob_chunk_cursor.moveToFirst();
-            byte[] blob_chunk = blob_chunk_cursor.getBlob(0);
-            blob_chunk_cursor.close();
-
-            System.arraycopy(blob_chunk, 0, audio_data, blob_offset, size_of_read);
-            blob_offset += size_of_read;
-        }
-        Log.i("Sample Generation","Final blob offset " + blob_offset);
+        byte[] audio_data = get_sample_byte_array_from_database(random_sample_number);
 
         // Extract the byte array to a Sample object
+        Sample sample = get_sample_from_byte_array(audio_data);
+        return sample;
+    }
+
+    private Sample get_sample_from_byte_array(byte[] audio_data) {
         Sample sample = null;
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(audio_data);
@@ -151,9 +121,45 @@ public class AudioRepository {
         } catch (ClassNotFoundException e) {
             Log.i("Sample Generation","ClassNotFound Error while reading Sample from database");
         }
-
-        // Sample sample = new Sample(source_id, tag, num_channels, num_frames, bits_per_sample, sample_rate, audio_data);
         return sample;
+    }
+
+    private byte[] get_sample_byte_array_from_database(Integer sample_number) {
+        Integer data_length = get_sample_data_length(sample_number);
+        Integer blob_offset = 0;
+        byte[] audio_data = new byte[data_length];
+
+        while (blob_offset < data_length) {
+            Integer sql_substr_offset = blob_offset + 1; // SUBSTR offset in SQL is 1-indexed
+            Integer left_to_read = data_length - blob_offset;
+            Integer size_of_read = Math.min(left_to_read, MAX_CURSOR_WINDOW_SIZE);
+
+            final String RETRIEVE_SAMPLE_DATA_SQL = "SELECT SUBSTR(" +
+                    AudioDbContract.Samples.COLUMN_NAME_SAMPLE_OBJECT_DATA +
+                    ", " + sql_substr_offset + ", " + size_of_read +
+                    ") FROM " + AudioDbContract.Samples.TABLE_NAME +
+                    " LIMIT 1 OFFSET " + sample_number;
+
+            Cursor blob_chunk_cursor = audioDb.rawQuery(RETRIEVE_SAMPLE_DATA_SQL,null);
+            blob_chunk_cursor.moveToFirst();
+            byte[] blob_chunk = blob_chunk_cursor.getBlob(0);
+            blob_chunk_cursor.close();
+
+            System.arraycopy(blob_chunk, 0, audio_data, blob_offset, size_of_read);
+            blob_offset += size_of_read;
+        }
+        return audio_data;
+    }
+
+    private Integer get_sample_data_length(Integer sample_number) {
+        final String RETRIEVE_SAMPLE_DATA_LENGTH_SQL = "SELECT LENGTH(" + AudioDbContract.Samples.COLUMN_NAME_SAMPLE_OBJECT_DATA +
+                ") FROM " + AudioDbContract.Samples.TABLE_NAME +
+                " LIMIT 1 OFFSET " + sample_number;
+        Cursor sample_data_length_cursor = audioDb.rawQuery(RETRIEVE_SAMPLE_DATA_LENGTH_SQL, null);
+        sample_data_length_cursor.moveToFirst();
+        Integer data_length = sample_data_length_cursor.getInt(0);
+        sample_data_length_cursor.close();
+        return data_length;
     }
 
     public void checkRepository() {
@@ -165,31 +171,35 @@ public class AudioRepository {
             return;
         }
 
-        // Count files
-        final String FILES_COUNT_SQL = "SELECT COUNT() " +
-                "FROM " + AudioDbContract.AudioFiles.TABLE_NAME;
-        Cursor files_count = audioDb.rawQuery(FILES_COUNT_SQL, null);
-        files_count.moveToFirst();
-        setFiles_count(Integer.parseInt(files_count.getString(0)));
-        files_count.close();
+        updateFilesCount();
+        updateSamplesCount();
+    }
 
-        // Count samples
-        final String SAMPLES_COUNT_SQL = "SELECT COUNT() " +
-                "FROM " + AudioDbContract.Samples.TABLE_NAME;
-        Cursor samples_count = audioDb.rawQuery(SAMPLES_COUNT_SQL, null);
-        samples_count.moveToFirst();
-        setSamples_count(Integer.parseInt(samples_count.getString(0)));
-        samples_count.close();
+    public void updateFilesCount() {
+        setFiles_count(table_length(AudioDbContract.AudioFiles.TABLE_NAME));
+    }
 
-        return;
+    public void updateSamplesCount() {
+        setSamples_count(table_length(AudioDbContract.Samples.TABLE_NAME));
+
+    }
+
+    private Integer table_length(String table_name) {
+        final String TABLE_LENGTH_SQL = "SELECT COUNT() " +
+                "FROM " + table_name;
+        Cursor files_count_cursor = audioDb.rawQuery(TABLE_LENGTH_SQL, null);
+        files_count_cursor.moveToFirst();
+        Integer files_count = Integer.parseInt(files_count_cursor.getString(0));
+        files_count_cursor.close();
+        return files_count;
     }
 
     public void emptyRepository() {
         File myDir = new File(storedContext.getFilesDir().getPath());
         if (myDir.isDirectory()) {
             String[] children = myDir.list();
-            for (int i = 0; i < children.length; i++) {
-                new File(myDir, children[i]).delete();
+            for (String child : children) {
+                new File(myDir, child).delete();
             }
         }
         audioDbHelper.emptyDatabase(audioDb);

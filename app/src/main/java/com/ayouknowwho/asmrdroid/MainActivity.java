@@ -1,17 +1,17 @@
 package com.ayouknowwho.asmrdroid;
 
 import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.net.Uri;
-// import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Looper;
-import android.util.Log;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 import androidx.lifecycle.ViewModelProvider;
-// import androidx.lifecycle.ViewModelProvider;
 
 import com.ayouknowwho.asmrdroid.interfaces.FileImportStarter;
 import com.ayouknowwho.asmrdroid.interfaces.FilePicker;
@@ -39,16 +39,23 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
 
     final static int PICK_FILE_REQUEST_CODE = 1;
     final static String[] SUPPORTED_IMPORT_MIME_TYPES = {"audio/wav", "audio/x-wav"};
+    private static final String NOTIFICATION_CHANNEL_ID = "asmrdroid";
+    private static final Integer IMPORT_NOTIFICATION_ID = 1;
+    private static final Integer GENERATE_SAMPLES_NOTIFICATION_ID = 2;
+    private static final Integer GENERATE_FILE_NOTIFICATION_ID = 3;
 
 
     private ImportViewModel importViewModel;
     private AudioRepositoryViewModel audioRepositoryViewModel;
     private GenerateViewModel generateViewModel;
     private ExecutorService executorService;
+    private NotificationManager notificationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Create notification channel
+        notificationManager = createNotificationChannel();
 
         // Set up view models
         importViewModel = new ViewModelProvider(this).get(ImportViewModel.class);
@@ -133,14 +140,6 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
     public void generateAudioFile() {
         Runnable generateAudioFileRunnable = new GenerateAudioFileRunnable();
         executorService.execute(generateAudioFileRunnable);
-        /*
-        AsyncTask.execute(new Runnable() {
-
-            @Override
-            public void run() {
-
-        });
-        */
     }
 
 
@@ -152,8 +151,6 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
         String tag = audioRepositoryViewModel.getTagFromFileIndex(file_index);
         File inFile;
         WavFile inWavFile;
-
-        Log.i("Sample Generation","Generating samples for " + inFilename);
 
         try {
             // Open File as WavFile
@@ -203,7 +200,6 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
                 } else {
                     inWavFile.readFrames(temp_buffer, (int) frame_shortfall);
                     current_frame += frame_shortfall;
-                    Log.i("Sample Generation","Reached start position in file " + inFilename);
                 }
             }
         } catch (java.io.IOException e) {
@@ -217,17 +213,14 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
         // Read from START_PERCENT to END_PERCENT with random length chunks between
         // MIN_LENGTH_MS and MAX_LENGTH_MS, store each chunk as a sample
         long end_frame = AudioMathHelper.ConvertPercentToNthFrame(END_PERCENT, num_frames);
-        Integer sample_count = 0;
-        Log.i("Sample Generation","Generating samples from frame " + current_frame);
+        NotificationCompat.Builder builder = createNotificationBuilder(GENERATE_SAMPLES_NOTIFICATION_ID, "Cut samples from new file");
         try {
             while (current_frame < end_frame) {
                 long frame_shortfall = end_frame - current_frame;
-                Log.i("Sample Generation",frame_shortfall + " frames left to convert to samples.");
                 if (frame_shortfall < min_sample_frames) {
                     break;
                 } else {
                     Integer sample_length_frames = AudioMathHelper.getRandomSampleLengthInFrames(min_sample_frames, max_sample_frames, frame_shortfall);
-                    Log.i("Sample Generation","Generating sample of length " + sample_length_frames);
 
                     // Create a buffer to hold the frames
                     Integer buffer_size;
@@ -249,7 +242,12 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
 
                     // Update the counters
                     current_frame += sample_length_frames;
-                    sample_count++;
+
+                    // Update the notification
+                    // TODO: take account of skipped frames from START_PERCENT
+                    Integer current_progress = Math.toIntExact((current_frame * 100) / end_frame);
+                    builder.setProgress(100, current_progress, false);
+                    notificationManager.notify(GENERATE_SAMPLES_NOTIFICATION_ID, builder.build());
                 }
             }
         } catch (java.io.IOException e) {
@@ -260,18 +258,22 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             return;
         }
 
-        Toast.makeText(this.getApplicationContext(),sample_count + " samples generated for " + inFilename, Toast.LENGTH_SHORT).show();
-        Log.i("Sample Generation",sample_count + " samples generated for " + inFilename);
+        // Set import file complete notification
+        notificationManager.cancel(GENERATE_SAMPLES_NOTIFICATION_ID);
+        NotificationCompat.Builder builder2 = createNotificationBuilder(GENERATE_SAMPLES_NOTIFICATION_ID, "File import complete");
+        notificationManager.notify(GENERATE_SAMPLES_NOTIFICATION_ID, builder2.build());
 
     }
 
 
     private String getUniqueFilename(Uri uri) {
-        // TODO: Implement, this currently returns a non-unique destination
+        // TODO: Uses the current time to create a likely unique filename, but doesn't check it is unique yet
+        final LocalDateTime now = LocalDateTime.now();
         String uriString = uri.getPath();
-        String filenameString = uriString.substring(uriString.lastIndexOf(File.separator) + 1);
-        filenameString = filenameString.replace(" ", "");
-        return filenameString;
+        String currentFilenameString = uriString.substring(uriString.lastIndexOf(File.separator) + 1);
+        currentFilenameString = currentFilenameString.replace(" ", "");
+        String newFilenameString = now.toString() + currentFilenameString;
+        return newFilenameString;
     }
 
 
@@ -340,6 +342,9 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
                 return;
             }
 
+            // Create a notification for progress updates
+            NotificationCompat.Builder builder = createNotificationBuilder(IMPORT_NOTIFICATION_ID, "Import file");
+
             // Copy data from input to output
             try {
                 // bos = new BufferedOutputStream(new FileOutputStream(outDestination));
@@ -347,9 +352,9 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
                 byte[] buf;
                 int writeCount = 0;
                 int max_chunk_size = 16 * 1024;
+                int total = is.available();
                 while (true) {
                     int available = is.available();
-                    // Log.i("File import",available + " bytes remain.");
                     if (available == 0) {
                         break;
                     }
@@ -358,8 +363,12 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
                     bis.read(buf);
                     bos.write(buf);
                     writeCount += read_chunk_size;
+
+                    // Update the notification
+                    builder.setProgress(total, writeCount, false);
+                    notificationManager.notify(IMPORT_NOTIFICATION_ID, builder.build());
                 }
-                Toast.makeText(MainActivity.this, (writeCount / 1000000) + "MB File Imported.", Toast.LENGTH_SHORT).show();
+                // Toast.makeText(MainActivity.this, (writeCount / 1000000) + "MB File Imported.", Toast.LENGTH_SHORT).show();
             } catch (java.io.FileNotFoundException e) {
                 Toast.makeText(MainActivity.this, "Output file not found.", Toast.LENGTH_SHORT).show();
                 return;
@@ -383,9 +392,10 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
                 Toast.makeText(MainActivity.this, "IO Error while closing streams.", Toast.LENGTH_SHORT).show();
             }
 
-            // Generate Samples
+            // Close the notification
+            notificationManager.cancel(IMPORT_NOTIFICATION_ID);
 
-            // Check samples are generated
+            // Generate Samples
             generateSamplesFromAllImportedFiles();
         }
     }
@@ -451,6 +461,7 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
 
             // Append new samples until we can't fit any more
             long overall_frames_written = 0;
+            NotificationCompat.Builder builder = createNotificationBuilder(GENERATE_FILE_NOTIFICATION_ID, "Add samples to new file");
             try {
                 while (overall_frames_written < num_frames_to_generate) {
                     // TODO: Get a sample by tag, not just default
@@ -473,6 +484,12 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
 
                     // Increment overall_frames_written
                     overall_frames_written += converted_sample.getNum_frames();
+
+                    // Update the notification
+                    Integer completed_percent = Math.toIntExact((overall_frames_written * 100) / num_frames_to_generate);
+                    builder.setProgress(100, completed_percent, false);
+                    notificationManager.notify(GENERATE_FILE_NOTIFICATION_ID, builder.build());
+
                 }
             } catch (java.io.IOException e) {
                 Toast.makeText(MainActivity.super.getApplicationContext(), "IO Error when writing file, output file corrupted.", Toast.LENGTH_SHORT).show();
@@ -488,6 +505,34 @@ public class MainActivity extends AppCompatActivity implements FilePicker, FileI
             } catch (java.io.IOException e) {
                 Toast.makeText(MainActivity.super.getApplicationContext(), "IO Error when closing file, output file corrupted.", Toast.LENGTH_SHORT).show();
             }
+
+            notificationManager.cancel(GENERATE_FILE_NOTIFICATION_ID);
+            NotificationCompat.Builder builder2 = createNotificationBuilder(GENERATE_FILE_NOTIFICATION_ID, "File export complete");
+            notificationManager.notify(GENERATE_FILE_NOTIFICATION_ID, builder2.build());
         }
+    }
+
+    private NotificationManager createNotificationChannel() {
+        CharSequence name = getString(R.string.channel_name);
+        String description = getString(R.string.channel_description);
+        int importance = NotificationManager.IMPORTANCE_MIN;
+        NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance);
+        channel.setDescription(description);
+        // Register the channel with the system; you can't change the importance
+        // or other notification behaviors after this
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(channel);
+        return notificationManager;
+    }
+
+    private NotificationCompat.Builder createNotificationBuilder(Integer notificationId, String job) {
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
+        builder.setContentTitle(job)
+                .setContentText(job)
+                .setSmallIcon(R.drawable.reload_icon_with_two_arrows)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setSilent(true);
+
+        return builder;
     }
 }

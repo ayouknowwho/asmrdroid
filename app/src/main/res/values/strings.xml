@@ -3,9 +3,9 @@
     <string name="tab1_label">Home</string>
     <string name="tab2_label">Import</string>
     <string name="tab3_label">Generate</string>
-    <string name="home_fragment_text1">Welcome to ASMRdroid, an android app for remixing input asmr audio into new randomized audio.</string>
+    <string name="home_fragment_text1">Welcome to ASMRdroid, an android app for remixing input asmr audio into new randomized audio. Please enable notifications to get progress bars.</string>
     <string name="import_fragment_text1">This tab is used for importing audio files to the app folder.</string>
-    <string name="generate_fragment_text1">This tab is used for generating audio from the imported files. We target stereo audio at a sample rate of 44.1kHz and 24 bits per sample.</string>
+    <string name="generate_fragment_text1">This tab is used for generating audio from the imported files. You can start listening to the file before it has finished being generated.</string>
     <string name="import_file_uri">Please select a file to import</string>
     <string name="pick_file_button_text">Pick File</string>
     <string name="import_file_button_text">Import File</string>
@@ -26,4 +26,6 @@
     <string name="out_folder_uri">Please select a folder for export.</string>
     <string name="out_folder_button">Pick Folder</string>
     <string name="external_files_dir_text">Error: external files directory unknown.</string>
+    <string name="channel_name">asmrdroid</string>
+    <string name="channel_description">asmrdroid</string>
 </resources>
